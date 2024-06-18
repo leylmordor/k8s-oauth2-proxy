@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: oauth2-proxy
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+        - args:
+            - '--http-address=0.0.0.0:4180'
+            - '--https-address=0.0.0.0:4443'
+            - '--metrics-address=0.0.0.0:44180'
+            - '--config=/etc/oauth2_proxy/oauth2_proxy.cfg'
+            - '--whitelist-domain=*.example.com'
+            - '--cookie-csrf-per-request=true'
+            - '--cookie-csrf-expire=5m'
+            - '--cookie-secure=true'
+            - '--cookie-domain=.example.com'
+            - '--cookie-path=/'
+            - '--set-xauthrequest=true'
+            - '--set-authorization-header=true'
+            - '--pass-user-headers=true'
+            - '--pass-authorization-header=true'
+          image: 'quay.io/oauth2-proxy/oauth2-proxy:latest'
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 4180
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 30
+          name: oauth2-proxy
+          ports:
+            - containerPort: 4180
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 4180
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 30
+          volumeMounts:
+            - mountPath: /etc/oauth2_proxy/oauth2_proxy.cfg
+              name: config-volume
+              subPath: oauth2_proxy.cfg
+      volumes:
+        - configMap:
+            name: oauth2-proxy-config
+          name: config-volume

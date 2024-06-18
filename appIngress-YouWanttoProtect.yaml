@@ -1,0 +1,63 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-response-headers: 'X-Auth-Request-User,X-Auth-Request-Access-Token,Authorization'
+    nginx.ingress.kubernetes.io/auth-signin: 'https://oauth2.example.com/oauth2/start?rd=$scheme://$host$request_uri'
+    nginx.ingress.kubernetes.io/auth-url: 'https://oauth2.example.com/oauth2/auth'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+  name: nginx-ingress
+  namespace: app-namespace
+spec:
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: app-service
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: wildcard-tls
+---
+# This is how your ingress will look like before you add the snippets for oauth2-proxy:
+#### This annotation specifies the headers that should be passed from the authentication server (OAuth2 Proxy) to the backend service.
+# nginx.ingress.kubernetes.io/auth-response-headers: 'X-Auth-Request-User,X-Auth-Request-Access-Token,Authorization'
+#### This annotation defines the URL to which unauthenticated requests should be redirected for authentication.
+
+#### https://oauth2-proxy.example.com/oauth2/start: The OAuth2 Proxy endpoint where the authentication process begins.
+#### rd=$scheme://$host$request_uri: A query parameter that specifies the return URL after successful authentication. It ensures the user is redirected back to the original request URL aka your application.
+# nginx.ingress.kubernetes.io/auth-signin: 'https://oauth2-proxy.example.com/oauth2/start?rd=$scheme://$host$request_uri'
+# This annotation sets the URL that the Ingress controller should call to validate the authentication of incoming requests.
+####https://oauth2-proxy.example.com/oauth2/auth: The endpoint in the OAuth2 Proxy that verifies whether a request is authenticated. If the request is authenticated, OAuth2 Proxy returns a success response; otherwise, it initiates the authentication flow.
+#### nginx.ingress.kubernetes.io/auth-url: 'https://oauth2-proxy.example.com/oauth2/auth'
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   annotations:
+#     kubernetes.io/ingress.class: nginx
+#     nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+#   name: nginx-ingress
+#   namespace: app-namespace
+# spec:
+#   rules:
+#     - host: app.example.com
+#       http:
+#         paths:
+#           - backend:
+#               service:
+#                 name: nginx-service
+#                 port:
+#                   number: 80
+#             path: /
+#             pathType: Prefix
+#   tls:
+#     - hosts:
+#         - app.example.com
+#       secretName: your-tls-secret-for-the-domain

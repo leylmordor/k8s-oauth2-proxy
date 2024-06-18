@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s-app: oauth2-proxy
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  ports:
+    - name: http
+      port: 4180
+      protocol: TCP
+      targetPort: 4180
+  selector:
+    app: oauth2-proxy
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  rules:
+    - host: oauth2.example.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: oauth2-proxy
+                port:
+                  number: 4180
+            path: /oauth2
+            pathType: Prefix
+  tls:
+    - hosts:
+        - oauth2.example.com
+      secretName: wildcard-tls
+# This is the ingress your applications will use to authenticate users
